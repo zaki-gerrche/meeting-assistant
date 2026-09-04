@@ -11,10 +11,10 @@ st.write("سجّل صوتك مباشرة وسيتم تحويله لنص واست
 language_choice = st.radio("اختر لغة التسجيل:", ["العربية", "English"], horizontal=True)
 lang_code = "ar" if language_choice == "العربية" else "en"
 
-# تحميل نموذج Whisper مرة واحدة فقط وحفظه في الذاكرة (يسرّع التطبيق)
+# تحميل نموذج Whisper مرة واحدة فقط وحفظه في الذاكرة (نموذج tiny أخف على الرام)
 @st.cache_resource
 def load_whisper_model():
-    return whisper.load_model("small")
+    return whisper.load_model("tiny")
 
 model = load_whisper_model()
 
@@ -101,7 +101,6 @@ if audio_value is not None:
                 else:
                     st.write("لا توجد مهام واضحة بالنص")
 
-                # تجهيز محتوى ملف التحميل
                 report_content = "النص المستخرج:\n" + text + "\n\n"
                 report_content += "المهام المكتشفة:\n"
                 if len(tasks) > 0:
@@ -124,6 +123,5 @@ if audio_value is not None:
                 st.error(f"حدث خطأ أثناء تحويل الصوت: {e}")
 
             finally:
-                # حذف الملف الصوتي المؤقت تلقائياً لحماية الخصوصية
                 if os.path.exists("temp_audio.wav"):
                     os.remove("temp_audio.wav")
