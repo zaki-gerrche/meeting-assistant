@@ -1,5 +1,5 @@
 import streamlit as st
-import whisper
+from faster_whisper import WhisperModel
 import re
 import os
 
@@ -11,10 +11,10 @@ st.write("سجّل صوتك مباشرة وسيتم تحويله لنص واست
 language_choice = st.radio("اختر لغة التسجيل:", ["العربية", "English"], horizontal=True)
 lang_code = "ar" if language_choice == "العربية" else "en"
 
-# تحميل نموذج Whisper مرة واحدة فقط وحفظه في الذاكرة (نموذج tiny أخف على الرام)
+# تحميل نموذج faster-whisper مرة واحدة فقط (أخف بكثير من openai-whisper على الرام)
 @st.cache_resource
 def load_whisper_model():
-    return whisper.load_model("tiny")
+    return WhisperModel("tiny", device="cpu", compute_type="int8")
 
 model = load_whisper_model()
 
@@ -29,8 +29,8 @@ if audio_value is not None:
     if st.button("🚀 ابدأ التحليل"):
         with st.spinner("جاري تحويل الصوت لنص..."):
             try:
-                result = model.transcribe("temp_audio.wav", language=lang_code)
-                text = result["text"]
+                segments, info = model.transcribe("temp_audio.wav", language=lang_code)
+                text = " ".join([segment.text for segment in segments]).strip()
 
                 st.subheader("📝 النص المستخرج:")
                 st.write(text)
