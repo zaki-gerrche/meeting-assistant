@@ -2,6 +2,7 @@ import streamlit as st
 from faster_whisper import WhisperModel
 import re
 import os
+import json
 
 st.set_page_config(page_title="مساعد الاجتماعات الذكي", page_icon="🎙️")
 
@@ -11,12 +12,24 @@ st.write("سجّل صوتك مباشرة وسيتم تحويله لنص واست
 language_choice = st.radio("اختر لغة التسجيل:", ["العربية", "English"], horizontal=True)
 lang_code = "ar" if language_choice == "العربية" else "en"
 
-# تحميل نموذج faster-whisper مرة واحدة فقط (أخف بكثير من openai-whisper على الرام)
+# تحميل نموذج faster-whisper مرة واحدة فقط (أخف بكثير على الرام)
 @st.cache_resource
 def load_whisper_model():
     return WhisperModel("tiny", device="cpu", compute_type="int8")
 
 model = load_whisper_model()
+
+# حفظ المهام في ملف tasks.json لتظهر في لوحة Kanban
+def save_tasks_to_kanban(new_tasks):
+    tasks_file = "tasks.json"
+    existing = []
+    if os.path.exists(tasks_file):
+        with open(tasks_file, "r", encoding="utf-8") as f:
+            existing = json.load(f)
+    for t in new_tasks:
+        existing.append({"text": t["text"], "owner": t["owner"], "status": "جديد"})
+    with open(tasks_file, "w", encoding="utf-8") as f:
+        json.dump(existing, f, ensure_ascii=False, indent=2)
 
 audio_value = st.audio_input("اضغط للتسجيل")
 
@@ -91,6 +104,10 @@ if audio_value is not None:
                     return found_tasks
 
                 tasks = find_tasks(text, lang_code)
+
+                # حفظ المهام تلقائياً في لوحة Kanban
+                save_tasks_to_kanban(tasks)
+
                 st.subheader("✅ المهام المكتشفة:")
                 if len(tasks) > 0:
                     for task in tasks:
@@ -98,6 +115,7 @@ if audio_value is not None:
                             st.write(f"👤 **{task['owner']}** — {task['text']}")
                         else:
                             st.write("- " + task["text"])
+                    st.success("✅ تم إرسال المهام تلقائياً إلى لوحة المهام (Kanban)")
                 else:
                     st.write("لا توجد مهام واضحة بالنص")
 
